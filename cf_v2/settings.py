@@ -28,6 +28,8 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 
+ROOT_URLCONF = 'cf_v2.urls'
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -37,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'api',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
@@ -49,7 +53,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'cf_v2.urls'
 
 TEMPLATES = [
     {
