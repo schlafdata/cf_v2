@@ -204,9 +204,30 @@ def findMatches(user, source):
             return [jsonMatches]
 
 
-def get_raw_concerts():
+venue_api_dict = {   'all': 'scrapeVenues()',
+                     'meow':'meow_scrape()',
+                     'black_box':'black_box_scrape()',
+                     'temple':'temple_scrape()',
+                     'mish':'mish_scrape()',
+                     'larimer':'larimer_scrape()',
+                     'marquis':'marquisScrape()',
+                     'fillmore':'fillmoreScrape()',
+                     'cervantes':'cervantes_scrape()',
+                     'belly_up':'bellyScrape()',
+                     'red_rocks':'redRocksScrape()',
+                     'co_clubs':'nightOutScrape()',
+                     'mission':'missionScrape()',
+                     'blue_bird':'blue_bird_scrape()',
+                     'ogden':'ogden_scrape()',
+                     'first_bank':'first_bank_scrape()',
+                     'gothic':'gothic_scrape()',
+                     'summit':'summitScrape()'}
 
-    denver_concerts = scrapeVenues()
+
+
+
+def get_raw_concerts(venue):
+    denver_concerts = eval(venue_api_dict[venue])
     denver_concerts = denver_concerts[denver_concerts['Date'] != 'TBD']
     denver_concerts.Date = denver_concerts['Date'].map(lambda x : dateutil.parser.parse(str(x)))
     denver_concerts.Date = denver_concerts['Date'].map(lambda x : str(x).split()[0])

@@ -29,12 +29,12 @@ class ArticleView(APIView):
         return Response(resp)
 
 
-def runScriptConcerts():
+def runScriptConcerts(venue):
     # try:
     import time
     start_time = time.time()
 
-    result = cf_main.get_raw_concerts()
+    result = cf_main.get_raw_concerts(venue)
     concerts = result[0]
 
     return concerts
@@ -42,9 +42,9 @@ def runScriptConcerts():
 
 class ArticleViewConcerts(APIView):
     def get(self, request):
-
-        data = runScriptConcerts()
-       
+        venue = str(request.GET['venue']).rstrip('/')
+        data = runScriptConcerts(venue)
+        
         # the many param informs the serializer that it will be serializing more than a single article.
         serializer = ArticleSerializerConcerts(data, many=True)
         resp = serializer.data
