@@ -44,6 +44,7 @@ class ArticleViewConcerts(APIView):
     def get(self, request):
 
         data = runScriptConcerts()
+       
         # the many param informs the serializer that it will be serializing more than a single article.
         serializer = ArticleSerializerConcerts(data, many=True)
         resp = serializer.data

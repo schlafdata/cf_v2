@@ -8,6 +8,7 @@ tagger = pycrfsuite.Tagger()
 #tagger.open('/Users/john.schlafly/Documents/cf-v2/cf_v2/api/scripts/crf.model')
 tagger.open('/home/ubuntu/cf_v2_dir/api/scripts/crf.model')
 
+nltk.download('averaged_perceptron_tagger')
 
 def cervantes_scrape():
 

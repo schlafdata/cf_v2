@@ -2,28 +2,40 @@
 import requests
 import pandas as pd
 import re
+from bs4 import BeautifulSoup
 
 
+def redRocksScrape():    
+    resp = requests.get('https://www.redrocksonline.com/events/')
 
-def redRocksScrape():
+    resp_soup = BeautifulSoup(resp.text, 'html.parser')
+    section = resp_soup.find('section',{"id":"event-listing"})
+    date = [x.find('div', {"class":"date"}).text.strip() for x in section.findAll('div',{"class":"card card-event event-month-active event-filter-active"})]
+    images = [x.find('img')['data-image'] for x in section.findAll('div',{"class":"card card-event event-month-active event-filter-active"})]
+    artist = [x.find('h3', {"class":"card-title"}).text.strip() for x in section.findAll('div',{"class":"card card-event event-month-active event-filter-active"})]
 
-    red_rocks = requests.get('https://www.redrocksonline.com/wp-json/clique/v1/get_calendar_events_range?start=2022-09-01T00%3A00%3A00&end=2023-08-01T00%3A00%3A00&timeZone=America%2FDenver')
+    def try_aria(x):
+        try:
+            return x['aria-label']
+        except:
+            return
 
-    redRocksJson = red_rocks.json()
+    sub_artists = [try_aria(x.find('p')) for x in section.findAll('div',{"class":"card card-event event-month-active event-filter-active"})]
+    ticket_links = [x.find('a')['href'] for x in section.findAll('div',{"class":"card card-event event-month-active event-filter-active"})]
 
-    redFrame = pd.DataFrame([(x['title'],x['start'].split('T')[0],x['url']) for x in redRocksJson])
+    df = pd.DataFrame(list(zip(date, images, artist, sub_artists, ticket_links)))
 
-    redFrame.columns = ['Artist','Date','Link']
+    df.columns = ['Date','img_url','Artist','SubArtist','Link']
 
-    redFrame['Venue'] = 'Red Rocks'
+    df['Artist'] = df['Artist'] + ' featuring ' + df['SubArtist']
+
+    df['Artist'] = df['Artist'].map(str)
 
     def splitArtists(row):
-        return [x.strip() for x in re.split(';|:|,|,with|/|special guest|with|-| \d+|presents', row) if x != '']
+        return [x.strip() for x in re.split(';|:|,|,with|/|special guest|with|-| \d+|presents|featuring', row) if x != '']
 
-    redFrame['FiltArtist'] = redFrame['Artist'].map(splitArtists)
-
-    redFrame['img_url'] = 'sorry, no image for this event.'
-
-    redFrame = redFrame[['Artist','Date','Link','Venue','FiltArtist','img_url']]
-
-    return redFrame
+    df['FiltArtist'] = df['Artist'].map(splitArtists)
+    df['Venue'] = 'Red Rocks'
+    df = df[['Artist','Date','Link','Venue','FiltArtist','img_url']]
+    
+    return df

@@ -9,24 +9,24 @@ import concurrent.futures
 from collections import defaultdict
 import dateutil.parser
 
-# from soundcloud.soundcloud import *
-# from scrapes.blackbox import *
-# from scrapes.blue_bird import *
-# from scrapes.meow import *
-# from scrapes.ogden import *
-# from scrapes.first_bank import *
-# from scrapes.gothic import *
-# from scrapes.belly_up import *
-# from scrapes.larimer import * 
-# from scrapes.mish import *
-# from scrapes.mission import *
-# from scrapes.summit import *
-# from scrapes.fillmore import *
-# from scrapes.marquis import *
-# from scrapes.temple import *
-# from scrapes.night_out import *
-# from scrapes.red_rocks import * 
-# from scrapes.cervantes import *
+#from soundcloud.soundcloud import *
+#from scrapes.blackbox import *
+#from scrapes.blue_bird import *
+#from scrapes.meow import *
+#from scrapes.ogden import *
+#from scrapes.first_bank import *
+#from scrapes.gothic import *
+#from scrapes.belly_up import *
+#from scrapes.larimer import * 
+#from scrapes.mish import *
+#from scrapes.mission import *
+#from scrapes.summit import *
+#from scrapes.fillmore import *
+#from scrapes.marquis import *
+#from scrapes.temple import *
+#from scrapes.night_out import *
+#from scrapes.red_rocks import * 
+#from scrapes.cervantes import *
 
 from api.scripts.soundcloud.soundcloud import *
 from api.scripts.scrapes.blackbox import *

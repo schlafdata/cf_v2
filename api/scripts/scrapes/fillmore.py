@@ -55,7 +55,7 @@ def fillmoreScrape():
                         'pg': f'{x}',
                     }
 
-            response = requests.get('https://www.livenation.com/_next/data/PAh682KIcCv6rz8ymDFCV/venue/KovZpZAE6eJA/fillmore-auditorium-denver-events.json', params=params, cookies=cookies, headers=headers)
+            response = requests.get('https://www.livenation.com/_next/data/r3zy4CCJbYM9fYqs_mI_2/venue/KovZpZAE6eJA/fillmore-auditorium-denver-events.json', params=params)
             df = pd.DataFrame(response.json()['pageProps']['queryResults']['page']['data']['getEvents'])
             df['venueName'] = pd.json_normalize(df['venue'])['name']
             df['artist_name'] = pd.json_normalize(pd.json_normalize(df['artists'])[0])['name']
