@@ -17,9 +17,13 @@ class Matches(models.Model):
     Link =  models.CharField(max_length=255,default = '')
     img_url =  models.CharField(max_length=255,default = '')
     LikedArtists = StringListField()
-    # LikedArtists = models.CharField(max_length=255,default = '')
     song_url =  StringListField()
-    # picLink = models.CharField(max_length=255,default = '')
+    event_day =  models.CharField(max_length=255,default = '')
+    day_mon_year =  models.CharField(max_length=255,default = '')
+    event_day1 =  models.CharField(max_length=255,default = '')
+    event_month =  models.CharField(max_length=255,default = '')
+    event_year =  models.CharField(max_length=255,default = '')
+    mon_year =  models.CharField(max_length=255,default = '')
 
     def __str__(self):
         return self.title
@@ -32,8 +36,13 @@ class Concerts(models.Model):
     Venue = models.CharField(max_length=255,default = '')
     FiltArtist =  StringListField()
     img_url =  models.CharField(max_length=255,default = '')
+    event_day =  models.CharField(max_length=255,default = '')
+    day_mon_year =  models.CharField(max_length=255,default = '')
+    event_day1 =  models.CharField(max_length=255,default = '')
+    event_month =  models.CharField(max_length=255,default = '')
+    event_year =  models.CharField(max_length=255,default = '')
+    mon_year =  models.CharField(max_length=255,default = '')
 
     def __str__(self):
         return self.title
-
 
