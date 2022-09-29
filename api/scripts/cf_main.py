@@ -191,16 +191,35 @@ def findMatches(user, source):
             matches = matches[['Artist','Date','Venue','Link','img_url','Caused_By','song_url']]
             matches.columns = ['Event','Date','Venue','ticketLink','img_url','LikedArtists','song_url']
             matches.Date = matches['Date'].map(lambda x : dateutil.parser.parse(str(x)))
+
+            matches = matches[matches['Date'] >= pd.datetime.today()]
+            matches['event_day'] = matches['Date'].map(lambda x : x.day)
+            matches['day_mon_year'] = matches.Date.map(lambda x : x.strftime("%a, %b, %Y"))
+            matches[['event_day1','event_month','event_year']] = matches['day_mon_year'].map(lambda x : x.split(',')).apply(pd.Series)
+            matches['event_year'] = matches['event_year'].map(lambda x : x.strip())
+            matches['mon_year'] = matches['day_mon_year'].map(lambda x : ' '.join(x.split(',')[1:]).strip()).apply(pd.Series)
             matches.Date = matches['Date'].map(lambda x : str(x).split()[0])
-            matches.columns = ['Event','Date','Venue','Link','img_url','LikedArtists','song_url']
+            matches.columns = ['Event','Date','Venue','Link','img_url','LikedArtists','song_url','event_day','day_mon_year','event_day1','event_month','event_year','mon_year']
             jsonMatches = matches.to_dict('records')
             return [jsonMatches]
-
 
 
 def get_raw_concerts():
 
     denver_concerts = scrapeVenues()
+    denver_concerts = denver_concerts[denver_concerts['Date'] != 'TBD']
+    denver_concerts.Date = denver_concerts['Date'].map(lambda x : dateutil.parser.parse(str(x)))
+    denver_concerts.Date = denver_concerts['Date'].map(lambda x : str(x).split()[0])
+    denver_concerts.Date = pd.to_datetime(denver_concerts.Date)
+    denver_concerts = denver_concerts[denver_concerts['Date'] >= pd.datetime.today()]
+    denver_concerts['event_day'] = denver_concerts['Date'].map(lambda x : x.day)
+    denver_concerts['day_mon_year'] = denver_concerts.Date.map(lambda x : x.strftime("%a, %b, %Y"))
+    denver_concerts[['event_day1','event_month','event_year']] = denver_concerts['day_mon_year'].map(lambda x : x.split(',')).apply(pd.Series)
+    denver_concerts['event_year'] = denver_concerts['event_year'].map(lambda x : x.strip())
+    denver_concerts['mon_year'] = denver_concerts['day_mon_year'].map(lambda x : ' '.join(x.split(',')[1:]).strip()).apply(pd.Series)
+    denver_concerts.columns = ['Artist','Date','Link','Venue','FiltArtist','img_url','event_day','day_mon_year','event_day1','event_month','event_year','mon_year']
+
+
     concerts = denver_concerts.to_dict('records')
     return [concerts]
 
