@@ -48,6 +48,55 @@ from api.scripts.scrapes.red_rocks import *
 from api.scripts.scrapes.cervantes import *
 
 
+
+def mapSpotify(bearer):
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {bearer}',
+    }
+
+    params = {
+        'market': 'ES',
+        'limit': '10',
+        'offset': '5',
+    }
+
+
+    dfs = []
+    
+    response = requests.get('https://api.spotify.com/v1/me/tracks', params=params, headers=headers)
+    df = pd.json_normalize(response.json()['items'])
+    df[['song_link','artist','external_urls.spotify']] = pd.json_normalize(pd.json_normalize(df['track.album.artists'])[0])[['href','name','external_urls.spotify']]
+    df = df[['song_link','artist','external_urls.spotify','track.name']]
+    next_ = response.json()['next']
+    dfs.append(df)
+
+    while next_:
+
+        response = requests.get(next_, params=params, headers=headers)
+        df = pd.json_normalize(response.json()['items'])
+        df[['song_link','artist','external_urls.spotify']] = pd.json_normalize(pd.json_normalize(df['track.album.artists'])[0])[['href','name','external_urls.spotify']]
+        df = df[['song_link','artist','external_urls.spotify','track.name']]
+        dfs.append(df)
+        try:
+            next_ = response.json()['next']
+        except:
+            break
+
+    df = pd.concat(dfs)
+    
+    artists = list(set([x.upper() for x in df['artist'].tolist()]))
+    songs = df.groupby('artist')['song_link'].agg(list).reset_index().drop_duplicates('artist')
+    songs['artist'] = songs['artist'].map(lambda x : x.upper())
+    songs['song_link'] = songs.song_link.map(lambda x : x[0])
+    liked_song_url_dict = dict(zip(songs['artist'].tolist(), songs['song_link'].tolist()))
+    
+    
+    return [artists, liked_song_url_dict]
+
+
+
 functions = ['meow_scrape()','black_box_scrape()','temple_scrape()','mish_scrape()','larimer_scrape()','marquisScrape()','fillmoreScrape()','cervantes_scrape()','bellyScrape()','redRocksScrape()','nightOutScrape()','missionScrape()','blue_bird_scrape()','ogden_scrape()','first_bank_scrape()','gothic_scrape()','summitScrape()']
 
 
@@ -103,17 +152,22 @@ def eventDict():
 
 def findMatches(user, source):
 
-
     denver_concerts = eventDict()
-    # denver_raw_concerts = eventDict()[1]
-    
-    userLikes = mapFilters(user)
 
-    like_urls = userLikes[1].sort_values('like_count', ascending=False).drop_duplicates('Artist').sort_values('size', ascending=False)
-    liked_song_url_dict = dict(zip(like_urls['Artist'].tolist(), like_urls['song_url'].tolist()))
+    if source == 'soundcloud':
+    # denver_raw_concerts = eventDict()[1]
+        userLikes = mapFilters(user)
+        like_urls = userLikes[1].sort_values('like_count', ascending=False).drop_duplicates('Artist').sort_values('size', ascending=False)
+        liked_song_url_dict = dict(zip(like_urls['Artist'].tolist(), like_urls['song_url'].tolist()))
+
+    elif source == 'spotify':
+        userLikes = mapSpotify(user)
+        liked_song_url_dict = userLikes[1]
+
 
     matchResults = []
     for x in userLikes[0]:
+        print(x)
         try:
             shows = concertDict[x]
             if len(shows) > 0:
@@ -146,7 +200,7 @@ def findMatches(user, source):
     matches['Date'] = pd.to_datetime(matches['Date'])
     matches = matches.groupby(['Artist', 'Date','Venue','Link','img_url']).agg({'Caused_By': lambda x: ', '.join(x),'song_url': lambda x : list(x)}).sort_values('Date').reset_index()
 
-    if source == 'host':
+    if source in 'host':
     
         def nameLink(row):
             if row.Link == 'No Link at this time, sorry!':
@@ -187,7 +241,7 @@ def findMatches(user, source):
 
         return [matches, countFrame]
     
-    elif source == 'api_matches':
+    elif source in ('spotify','soundcloud'):
             matches = matches[['Artist','Date','Venue','Link','img_url','Caused_By','song_url']]
             matches.columns = ['Event','Date','Venue','ticketLink','img_url','LikedArtists','song_url']
             matches.Date = matches['Date'].map(lambda x : dateutil.parser.parse(str(x)))
@@ -204,9 +258,12 @@ def findMatches(user, source):
             return [jsonMatches]
 
 
-def get_raw_concerts():
+def get_raw_concerts(venue):
 
-    denver_concerts = scrapeVenues()
+    if venue == 'all':
+        denver_concerts = scrapeVenues()
+    elif venue == 'red rocks':
+        denver_concerts = redRocksScrape()
     denver_concerts = denver_concerts[denver_concerts['Date'] != 'TBD']
     denver_concerts.Date = denver_concerts['Date'].map(lambda x : dateutil.parser.parse(str(x)))
     denver_concerts.Date = denver_concerts['Date'].map(lambda x : str(x).split()[0])

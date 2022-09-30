@@ -47,3 +47,22 @@ class Concerts(models.Model):
         return self.title
 
 
+class Spotify(models.Model):
+    Event = models.CharField(max_length=255, default = '')
+    Date = models.DateTimeField(auto_now=False)
+    Venue = models.CharField(max_length=255,default = '')
+    Link =  models.CharField(max_length=255,default = '')
+    img_url =  models.CharField(max_length=255,default = '')
+    LikedArtists = StringListField()
+    song_url =  StringListField()
+    event_day =  models.CharField(max_length=255,default = '')
+    day_mon_year =  models.CharField(max_length=255,default = '')
+    event_day1 =  models.CharField(max_length=255,default = '')
+    event_month =  models.CharField(max_length=255,default = '')
+    event_year =  models.CharField(max_length=255,default = '')
+    mon_year =  models.CharField(max_length=255,default = '')
+
+    def __str__(self):
+        return self.title
+
+

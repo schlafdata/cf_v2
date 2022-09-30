@@ -2,7 +2,7 @@ from django.urls import path
 
 from api.views import ArticleView
 from api.views import ArticleViewConcerts
-
+from api.views import ArticleViewSpotify
 
 app_name = "api"
 
@@ -10,5 +10,7 @@ app_name = "api"
 urlpatterns = [
     path('api/', ArticleView.as_view()),
     path('api_concerts/', ArticleViewConcerts.as_view()),
+    path('api_spotify/', ArticleViewSpotify.as_view())
+
 ]
 
