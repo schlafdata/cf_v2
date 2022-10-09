@@ -13,7 +13,7 @@ def runScript(username):
     import time
     start_time = time.time()
 
-    result = cf_main.findMatches(username, 'api_matches')
+    result = cf_main.findMatches(username, 'soundcloud')
     matches = result[0]
     return matches
 
@@ -29,12 +29,12 @@ class ArticleView(APIView):
         return Response(resp)
 
 
-def runScriptConcerts():
+def runScriptConcerts(user, date):
     # try:
     import time
     start_time = time.time()
 
-    result = cf_main.get_raw_concerts()
+    result = cf_main.get_raw_concerts(user, date)
     concerts = result[0]
 
     return concerts
@@ -42,9 +42,36 @@ def runScriptConcerts():
 
 class ArticleViewConcerts(APIView):
     def get(self, request):
-
-        data = runScriptConcerts()
+        user = str(request.GET['venue']).rstrip('/')
+        date = '  '.join(str(request.GET['month']).rstrip('/').split('-'))
+        data = runScriptConcerts(user,date)
         # the many param informs the serializer that it will be serializing more than a single article.
         serializer = ArticleSerializerConcerts(data, many=True)
         resp = serializer.data
         return Response(resp)
+
+
+
+
+def runScriptSpotify(username):
+    # try:
+    import time
+    start_time = time.time()
+
+    result = cf_main.findMatches(username, 'spotify')
+    matches = result[0]
+    return matches
+
+class ArticleViewSpotify(APIView):
+    def get(self, request):
+        # articles = Article.objects.all()
+
+        user = str(request.GET['bearer']).rstrip('/')
+        data = runScriptSpotify(user)
+        # the many param informs the serializer that it will be serializing more than a single article.
+        serializer = ArticleSerializer(data, many=True)
+
+        resp = serializer.data
+        return Response(resp)
+
+

@@ -28,6 +28,7 @@ import dateutil.parser
 # from scrapes.red_rocks import * 
 # from scrapes.cervantes import *
 
+from api.scripts.scrapes.more_venues import *
 from api.scripts.soundcloud.soundcloud import *
 from api.scripts.scrapes.blackbox import *
 from api.scripts.scrapes.blue_bird import *
@@ -48,7 +49,58 @@ from api.scripts.scrapes.red_rocks import *
 from api.scripts.scrapes.cervantes import *
 
 
-functions = ['meow_scrape()','black_box_scrape()','temple_scrape()','mish_scrape()','larimer_scrape()','marquisScrape()','fillmoreScrape()','cervantes_scrape()','bellyScrape()','redRocksScrape()','nightOutScrape()','missionScrape()','blue_bird_scrape()','ogden_scrape()','first_bank_scrape()','gothic_scrape()','summitScrape()']
+
+def mapSpotify(bearer):
+    headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {bearer}',
+    }
+
+    params = {
+        'market': 'ES',
+        'limit': '10',
+        'offset': '5',
+    }
+
+
+    dfs = []
+    
+    response = requests.get('https://api.spotify.com/v1/me/tracks', params=params, headers=headers)
+    df = pd.json_normalize(response.json()['items'])
+    df[['artist','external_urls.spotify']] = pd.json_normalize(pd.json_normalize(df['track.album.artists'])[0])[['name','external_urls.spotify']]
+    df = df[['track.id','artist','external_urls.spotify','track.name']]
+    df.columns = ['song_link','artist','external_urls.spotify','track.name']
+    next_ = response.json()['next']
+    dfs.append(df)
+
+    while next_:
+
+        try:
+            
+            response = requests.get(next_, params=params, headers=headers)
+            df = pd.json_normalize(response.json()['items'])
+            df[['artist','external_urls.spotify']] = pd.json_normalize(pd.json_normalize(df['track.album.artists'])[0])[['name','external_urls.spotify']]
+            df = df[['track.id','artist','external_urls.spotify','track.name']]
+            df.columns = ['song_link','artist','external_urls.spotify','track.name']
+            dfs.append(df)
+            next_ = response.json()['next']
+        except:
+            break
+
+    df = pd.concat(dfs)
+    
+    artists = list(set([x.upper() for x in df['artist'].tolist()]))
+    songs = df.groupby('artist')['song_link'].agg(list).reset_index().drop_duplicates('artist')
+    songs['artist'] = songs['artist'].map(lambda x : x.upper())
+    songs['song_link'] = songs.song_link.map(lambda x : x[0])
+    liked_song_url_dict = dict(zip(songs['artist'].tolist(), songs['song_link'].tolist()))
+    
+    
+    return [artists, liked_song_url_dict]
+
+
+functions = ['ball_scrape()','dazzle()','ophelias()','herbs()','paramount()','roxy()','lost_lake()','levitt()','mile10()','meow_scrape()','black_box_scrape()','temple_scrape()','mish_scrape()','larimer_scrape()','marquisScrape()','fillmoreScrape()','cervantes_scrape()','bellyScrape()','redRocksScrape()','nightOutScrape()','missionScrape()','blue_bird_scrape()','ogden_scrape()','first_bank_scrape()','gothic_scrape()','summitScrape()']
 
 
 result = []
@@ -66,7 +118,7 @@ def sf_query(run):
                 pass
                 # print('error', functions[run])
 def main_2():
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
         results = [executor.submit(sf_query,run) for run in rang]
 
 
@@ -74,7 +126,7 @@ def scrapeVenues():
     execute = main_2()
     denver_concerts = pd.concat(result)
 #     denver_concerts['Date'] = denver_concerts['Date'].map(lambda x : parse(x).date())
-
+    denver_concerts = denver_concerts[denver_concerts['Date'].isna()==False]
     return denver_concerts
 
 concertDict = defaultdict(list)
@@ -103,17 +155,22 @@ def eventDict():
 
 def findMatches(user, source):
 
-
     denver_concerts = eventDict()
-    # denver_raw_concerts = eventDict()[1]
-    
-    userLikes = mapFilters(user)
 
-    like_urls = userLikes[1].sort_values('like_count', ascending=False).drop_duplicates('Artist').sort_values('size', ascending=False)
-    liked_song_url_dict = dict(zip(like_urls['Artist'].tolist(), like_urls['song_url'].tolist()))
+    if source == 'soundcloud':
+    # denver_raw_concerts = eventDict()[1]
+        userLikes = mapFilters(user)
+        like_urls = userLikes[1].sort_values('like_count', ascending=False).drop_duplicates('Artist').sort_values('size', ascending=False)
+        liked_song_url_dict = dict(zip(like_urls['Artist'].tolist(), like_urls['song_url'].tolist()))
+
+    elif source == 'spotify':
+        userLikes = mapSpotify(user)
+        liked_song_url_dict = userLikes[1]
+
 
     matchResults = []
     for x in userLikes[0]:
+        print(x)
         try:
             shows = concertDict[x]
             if len(shows) > 0:
@@ -146,7 +203,7 @@ def findMatches(user, source):
     matches['Date'] = pd.to_datetime(matches['Date'])
     matches = matches.groupby(['Artist', 'Date','Venue','Link','img_url']).agg({'Caused_By': lambda x: ', '.join(x),'song_url': lambda x : list(x)}).sort_values('Date').reset_index()
 
-    if source == 'host':
+    if source in 'host':
     
         def nameLink(row):
             if row.Link == 'No Link at this time, sorry!':
@@ -187,21 +244,73 @@ def findMatches(user, source):
 
         return [matches, countFrame]
     
-    elif source == 'api_matches':
+    elif source in ('spotify','soundcloud'):
             matches = matches[['Artist','Date','Venue','Link','img_url','Caused_By','song_url']]
             matches.columns = ['Event','Date','Venue','ticketLink','img_url','LikedArtists','song_url']
             matches.Date = matches['Date'].map(lambda x : dateutil.parser.parse(str(x)))
+
+            matches = matches[matches['Date'] >= pd.datetime.today()]
+            matches['event_day'] = matches['Date'].map(lambda x : x.day)
+            matches['day_mon_year'] = matches.Date.map(lambda x : x.strftime("%a, %b, %Y"))
+            matches[['event_day1','event_month','event_year']] = matches['day_mon_year'].map(lambda x : x.split(',')).apply(pd.Series)
+            matches['event_year'] = matches['event_year'].map(lambda x : x.strip())
+            matches['mon_year'] = matches['day_mon_year'].map(lambda x : ' '.join(x.split(',')[1:]).strip()).apply(pd.Series)
             matches.Date = matches['Date'].map(lambda x : str(x).split()[0])
-            matches.columns = ['Event','Date','Venue','Link','img_url','LikedArtists','song_url']
+            matches.columns = ['Event','Date','Venue','Link','img_url','LikedArtists','song_url','event_day','day_mon_year','event_day1','event_month','event_year','mon_year']
             jsonMatches = matches.to_dict('records')
             return [jsonMatches]
 
+venue_api_dict = {   'all': 'scrapeVenues()',
+                     'meow':'meow_scrape()',
+                     'black_box':'black_box_scrape()',
+                     'temple':'temple_scrape()',
+                     'mish':'mish_scrape()',
+                     'larimer':'larimer_scrape()',
+                     'marquis':'marquisScrape()',
+                     'fillmore':'fillmoreScrape()',
+                     'cervantes':'cervantes_scrape()',
+                     'belly_up':'bellyScrape()',
+                     'red_rocks':'redRocksScrape()',
+                     'co_clubs':'nightOutScrape()',
+                     'mission':'missionScrape()',
+                     'blue_bird':'blue_bird_scrape()',
+                     'ogden':'ogden_scrape()',
+                     'first_bank':'first_bank_scrape()',
+                     'gothic':'gothic_scrape()',
+                     'summit':'summitScrape()',
+                     'ball_arena':'ball_scrape()',
+                     'dazzle':'dazzle()',
+                     'ophelias':'ophelias()',
+                     'herbs':'hebs()',
+                     'paramount':'paramount()',
+                     'roxy':'roxy()',
+                     'lost_lake':'lost_lake()',
+                     'levitt':'levitt()',
+                     'mile10':'mile10()'
+}
 
 
-def get_raw_concerts():
+def get_raw_concerts(venue, date):
 
-    denver_concerts = scrapeVenues()
-    concerts = denver_concerts.to_dict('records')
+
+    denver_concerts = eval(venue_api_dict[venue])
+    denver_concerts = denver_concerts[denver_concerts['Date'] != 'TBD']
+    denver_concerts.Date = denver_concerts['Date'].map(lambda x : dateutil.parser.parse(str(x)))
+    denver_concerts.Date = denver_concerts['Date'].map(lambda x : str(x).split()[0])
+    denver_concerts.Date = pd.to_datetime(denver_concerts.Date)
+    denver_concerts = denver_concerts[denver_concerts['Date'] >= pd.datetime.today()]
+    denver_concerts['event_day'] = denver_concerts['Date'].map(lambda x : x.day)
+    denver_concerts['day_mon_year'] = denver_concerts.Date.map(lambda x : x.strftime("%a, %b, %Y"))
+    denver_concerts[['event_day1','event_month','event_year']] = denver_concerts['day_mon_year'].map(lambda x : x.split(',')).apply(pd.Series)
+    denver_concerts['event_year'] = denver_concerts['event_year'].map(lambda x : x.strip())
+    denver_concerts['mon_year'] = denver_concerts['day_mon_year'].map(lambda x : ' '.join(x.split(',')[1:]).strip()).apply(pd.Series)
+    denver_concerts.columns = ['Artist','Date','Link','Venue','FiltArtist','img_url','event_day','day_mon_year','event_day1','event_month','event_year','mon_year']
+
+    if date == 'all':
+         concerts = denver_concerts.to_dict('records')
+    else:
+         denver_concerts = denver_concerts[denver_concerts['mon_year'] == date]
+         concerts = denver_concerts.to_dict('records')
     return [concerts]
 
 

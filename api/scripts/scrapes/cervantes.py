@@ -43,10 +43,12 @@ def cervantes_scrape():
 
     responses = []
 
-    for x in range(1, 12):
 
-        response = requests.post(f'https://www.etix.com/ticket/json/calendar/organization/6122/2022/{x}', headers=headers, cookies=cookies, data=data)
-        responses.append(response.json())
+    for y in [2022,2023]:
+        for x in range(1, 12):
+
+            response = requests.post(f'https://www.etix.com/ticket/json/calendar/organization/6122/{y}/{x}', headers=headers, cookies=cookies, data=data)
+            responses.append(response.json())
 
 
     cervShows = []
@@ -62,15 +64,16 @@ def cervantes_scrape():
 
             names = [x['name'] for x in event['activities']]
             links = [x['buyUrl'] for x in event['activities']]
+            img_url = [x['imageUrl'] for x in event['activities']]
 
-            shows = [(i,j, showDate) for i, j in zip(names, links)]
+            shows = [(i,j,k, showDate) for i, j,k in zip(names, links, img_url)]
             for show in shows:
 
                 cervShows.append(show)
 
     cervFrame = pd.DataFrame(cervShows)
 
-    cervFrame.columns = ['Artist','Link','Date']
+    cervFrame.columns = ['Artist','Link','img_url','Date']
 
     cervFrame['Venue'] = 'Cervantes'
 
@@ -188,13 +191,12 @@ def cervantes_scrape():
 
     cervParse['predictions'] = cervParse.apply(combine, axis=1)
     cervParse['predictions'] = cervParse['predictions'].map(lambda x : [x for x in x.split(',')])
-    cervArtistFrame = cervParse[['Artist','predictions','Date','Venue','Link']]
-    cervArtistFrame.columns = ['Artist','FiltArtist','Date','Venue','Link']
+    cervArtistFrame = cervParse[['Artist','predictions','Date','Venue','Link','img_url']]
+    cervArtistFrame.columns = ['Artist','FiltArtist','Date','Venue','Link','img_url']
     cervArtistFrame = cervArtistFrame[cervArtistFrame['Venue'] != 'RED ROCKS AMPHITHEATRE']
+    
+    cervArtistFrame['img_url'] = cervArtistFrame.img_url.map(lambda x : 'https://www.etix.com' + x)
 
-    cervArtistFrame = cervArtistFrame[['Artist','Date','Link','Venue','FiltArtist']]
-    cervArtistFrame['img_url'] = 'sorry no image for this event yet'
-
-    cervArtistFrame= cervArtistFrame[['Artist','Date','Link','Venue','FiltArtist','img_url']]
+    cervArtistFrame = cervArtistFrame[['Artist','Date','Link','Venue','FiltArtist','img_url']]
 
     return cervArtistFrame

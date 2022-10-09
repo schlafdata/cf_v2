@@ -1,7 +1,48 @@
 import requests
 import pandas as pd
+from fake_useragent import UserAgent
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
+import time
+from seleniumwire import webdriver
+from selenium.webdriver.common.by import By
+
+
+
 
 def marquisScrape():
+    
+    options = webdriver.ChromeOptions()
+    options.add_argument('--disable-blink-features=AutomationControlled')
+    options.add_argument("window-size=1280,800")
+
+    ua = UserAgent()
+    a = ua.random
+    user_agent = ua.random
+    options.add_argument(f'user-agent={user_agent}')
+    options.add_argument("--headless")
+    driver = webdriver.Chrome(options=options)
+    driver.get('https://www.livenation.com/venues')
+    time.sleep(1)
+  
+    myElem = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, """//*[@id="nav"]/div/div[1]/div/div/div[2]/form/div/input """)))
+    myElem.send_keys('marquis')
+    
+    # driver.find_element(By.XPATH, """//*[@id="nav"]/div/div[1]/div/div/div[2]/form/div/input """).send_keys('fillmore')
+    time.sleep(1)
+    myElem = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, """listing__item__details""")))
+    time.sleep(2)
+    myElem.click()
+    
+    time.sleep(5)
+    
+    for request in driver.requests:
+        if 'https://www.livenation.com/_next/data/' in request.url:
+            new_token = request.url
+            if new_token:
+                break
     cookies = {
         'mt.v': '2.1008697111.1663964971406',
         'mt.pc': '2.1',
@@ -56,7 +97,7 @@ def marquisScrape():
                 'pg': f'{x}',
             }
 
-            response = requests.get('https://www.livenation.com/_next/data/PAh682KIcCv6rz8ymDFCV/venue/KovZpZAJeFkA/marquis-theater-events.json', params=params, cookies=cookies, headers=headers)
+            response = requests.get(new_token, params=params, cookies=cookies, headers=headers)
             df = pd.DataFrame(response.json()['pageProps']['queryResults']['page']['data']['getEvents'])
             df['venueName'] = pd.json_normalize(df['venue'])['name']
             df['artist_name'] = pd.json_normalize(pd.json_normalize(df['artists'])[0])['name']
